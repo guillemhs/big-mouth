@@ -4,6 +4,7 @@ jspm_packages
 
 # Serverless directories
 .serverless
+package-lock.json
 
 
 # Created by https://www.gitignore.io/api/node,macos,serverless,visualstudiocode
