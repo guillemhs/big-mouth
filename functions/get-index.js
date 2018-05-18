@@ -5,15 +5,16 @@ const Promise = require("bluebird");
 const fs = Promise.promisifyAll(require("fs"));
 const Mustache = require('mustache');
 const http = require('superagent-promise')(require('superagent'), Promise);
-const aws4 = require('aws4');
 const URL = require('url');
-
-const restaurantsApiRoot = process.env.restaurants_api;
-const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const aws4 = require('../lib/aws4');
 
 const awsRegion = process.env.AWS_REGION;
 const cognitoUserPoolId = process.env.cognito_user_pool_id;
 const cognitoClientId = process.env.cognito_client_id;
+
+const restaurantsApiRoot = process.env.restaurants_api;
+const ordersApiRoot = process.env.orders_api;
+const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 var html;
 
@@ -28,7 +29,7 @@ function* loadHtml() {
 function* getRestaurants() {
   let url = URL.parse(restaurantsApiRoot);
   let opts = {
-    host: url.hostname, 
+    host: url.hostname,
     path: url.pathname
   };
 
@@ -48,18 +49,21 @@ function* getRestaurants() {
 }
 
 module.exports.handler = co.wrap(function* (event, context, callback) {
+  yield aws4.init();
+
   let template = yield loadHtml();
   let restaurants = yield getRestaurants();
   let dayOfWeek = days[new Date().getDay()];
-  let view = { 
+  let view = {
+    dayOfWeek, 
+    restaurants,
     awsRegion,
     cognitoUserPoolId,
     cognitoClientId,
-    dayOfWeek, 
-    restaurants,
-    searchUrl: `${restaurantsApiRoot}/search`
+    searchUrl: `${restaurantsApiRoot}/search`,
+    placeOrderUrl: `${ordersApiRoot}`
   };
-  let html = Mustache.render(template, view);    
+  let html = Mustache.render(template, view);
 
   const response = {
     statusCode: 200,
